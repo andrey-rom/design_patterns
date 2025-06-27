@@ -1,8 +1,5 @@
 import { Task } from '../models/Task';
-import { UpdateTaskStatusCommand } from '../patterns/command/UpdateTaskStatusCommand';
-import { DeleteTaskCommand } from '../patterns/command/DeleteTaskCommand';
-import { PreviousTaskStatusCommand } from '../patterns/command/PreviousTaskStatusCommand';
-import type { Command } from '../patterns/command/Command';
+import { TaskManager } from '../services/TaskManager';
 
 export interface ITaskComponent {
     render(): HTMLElement;
@@ -38,17 +35,14 @@ export class TaskComponent implements ITaskComponent {
     private getActionButtons(): string {
         const buttons = [];
         
-        // Previous button (only for In Progress tasks)
         if (this.task.status === 'In Progress') {
             buttons.push(`<button class="btn btn-previous" data-task-id="${this.task.id}" title="Move back to To Do">←</button>`);
         }
         
-        // Next button (only for To Do and In Progress tasks)
         if (this.task.status !== 'Completed') {
             buttons.push(`<button class="btn btn-next" data-task-id="${this.task.id}" title="Move to next status">→</button>`);
         }
         
-        // Delete button (always available)
         buttons.push(`<button class="btn btn-delete" data-task-id="${this.task.id}" title="Delete task">🗑️</button>`);
         
         return buttons.join('');
@@ -58,7 +52,7 @@ export class TaskComponent implements ITaskComponent {
         element.querySelector('.btn-delete')?.addEventListener('click', (e) => {
             const taskId = (e.target as HTMLElement).closest('button')?.dataset.taskId;
             if (taskId) {
-                this.executeCommand(new DeleteTaskCommand(taskId));
+                TaskManager.getInstance().removeTask(taskId);
             }
         });
 
@@ -66,7 +60,12 @@ export class TaskComponent implements ITaskComponent {
             const target = (e.target as HTMLElement).closest('button');
             const taskId = target?.dataset.taskId;
             if (taskId) {
-                this.executeCommand(new UpdateTaskStatusCommand(taskId));
+                const taskManager = TaskManager.getInstance();
+                const task = taskManager.getTasks().find(t => t.id === taskId);
+                if (task) {
+                    task.nextState();
+                    taskManager.updateTask(task);
+                }
             }
         });
 
@@ -74,12 +73,13 @@ export class TaskComponent implements ITaskComponent {
             const target = (e.target as HTMLElement).closest('button');
             const taskId = target?.dataset.taskId;
             if (taskId) {
-                this.executeCommand(new PreviousTaskStatusCommand(taskId));
+                const taskManager = TaskManager.getInstance();
+                const task = taskManager.getTasks().find(t => t.id === taskId);
+                if (task) {
+                    task.previousState();
+                    taskManager.updateTask(task);
+                }
             }
         });
-    }
-
-    private executeCommand(command: Command): void {
-        command.execute();
     }
 } 

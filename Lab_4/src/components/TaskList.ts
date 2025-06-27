@@ -2,10 +2,7 @@ import type { Observer } from '../patterns/observer/Observer';
 import { Task } from '../models/Task';
 import type { FilterStrategy } from '../patterns/strategy/FilterStrategy';
 import { AllFilterStrategy } from '../patterns/strategy/AllFilterStrategy';
-import { DeleteTaskCommand } from '../patterns/command/DeleteTaskCommand';
-import { UpdateTaskStatusCommand } from '../patterns/command/UpdateTaskStatusCommand';
-import { PreviousTaskStatusCommand } from '../patterns/command/PreviousTaskStatusCommand';
-import type { Command } from '../patterns/command/Command';
+import { TaskManager } from '../services/TaskManager';
 import { TaskComponent } from './TaskComponent';
 import { PriorityHighlightDecorator } from '../patterns/decorator/PriorityHighlightDecorator';
 
@@ -23,10 +20,6 @@ export class TaskList implements Observer {
     update(tasks: Task[]): void {
         this.tasks = tasks;
         this.render();
-    }
-
-    private executeCommand(command: Command) {
-        command.execute();
     }
 
     private render(): void {
@@ -49,7 +42,7 @@ export class TaskList implements Observer {
             button.addEventListener('click', (e) => {
                 const taskId = (e.target as HTMLElement).closest('button')?.dataset.taskId;
                 if (taskId) {
-                    this.executeCommand(new DeleteTaskCommand(taskId));
+                    TaskManager.getInstance().removeTask(taskId);
                 }
             });
         });
@@ -59,7 +52,12 @@ export class TaskList implements Observer {
                 const target = (e.target as HTMLElement).closest('button');
                 const taskId = target?.dataset.taskId;
                 if (taskId) {
-                    this.executeCommand(new UpdateTaskStatusCommand(taskId));
+                    const taskManager = TaskManager.getInstance();
+                    const task = taskManager.getTasks().find(t => t.id === taskId);
+                    if (task) {
+                        task.nextState();
+                        taskManager.updateTask(task);
+                    }
                 }
             });
         });

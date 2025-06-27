@@ -1,7 +1,6 @@
 import type { Priority, Status } from '../models/Task';
 import { TaskBuilder } from '../patterns/TaskBuilder';
-import { AddTaskCommand } from '../patterns/command/AddTaskCommand';
-import type { Command } from '../patterns/command/Command';
+import { TaskManager } from '../services/TaskManager';
 
 export class TaskForm {
     private form: HTMLFormElement;
@@ -36,7 +35,7 @@ export class TaskForm {
                 .withStatus(status)
                 .build();
             
-            this.executeCommand(new AddTaskCommand(newTask));
+            TaskManager.getInstance().addTask(newTask);
             this.form.reset();
             this.titleInput.focus();
 
@@ -45,9 +44,5 @@ export class TaskForm {
                 alert(error.message);
             }
         }
-    }
-
-    private executeCommand(command: Command): void {
-        command.execute();
     }
 } 
